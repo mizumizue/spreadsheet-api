@@ -72,33 +72,29 @@ func handler(w http.ResponseWriter, req *http.Request) {
 	w.Write(res)
 }
 
-var colMap = map[int]string{
-	0:  "A",
-	1:  "B",
-	2:  "C",
-	3:  "D",
-	4:  "E",
-	5:  "F",
-	6:  "G",
-	7:  "H",
-	8:  "I",
-	9:  "J",
-	10: "K",
-	11: "L",
-	12: "M",
-	13: "N",
-	14: "O",
-	15: "P",
-	16: "Q",
-	17: "R",
-	18: "S",
-	19: "T",
-	20: "U",
-	21: "V",
-	22: "W",
-	23: "X",
-	24: "Y",
-	25: "Z",
+var am map[int]string
+
+func LastColumnIndexToRangeChar(lastColumnIndex int) string {
+	alpha := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	if am == nil {
+		am = make(map[int]string)
+		for i, a := range alpha {
+			am[i] = string(a)
+		}
+	}
+	lastAlphaNum := 26
+	if lastColumnIndex < lastAlphaNum {
+		return am[lastColumnIndex]
+	} else {
+		n := lastColumnIndex / lastAlphaNum
+		m := lastColumnIndex % lastAlphaNum
+		res := ""
+		for i := 0; i < n; i++ {
+			res += am[0]
+		}
+		res += am[m]
+		return res
+	}
 }
 
 func jsonMap(header []interface{}, values [][]interface{}) []map[string]interface{} {
@@ -147,24 +143,28 @@ func NewClient(ctx context.Context, spreadsheetID string, scopes ...string) (*Cl
 	}, nil
 }
 
+func (c *Client) Header(ctx context.Context, sheetName string) ([]interface{}, error) {
+	colNum, err := c.CountColumns(ctx, sheetName, true)
+	if err != nil {
+		return nil, err
+	}
+	vr, err := c.ser.Spreadsheets.Values.Get(c.spreadsheetID, fmt.Sprintf("%s!A1:%s", sheetName, LastColumnIndexToRangeChar(colNum))).Do()
+	if err != nil {
+		return nil, err
+	}
+	return vr.Values[0], nil
+}
+
 func (c *Client) AllRows(ctx context.Context, sheetName string) ([][]interface{}, error) {
 	colNum, err := c.CountColumns(ctx, sheetName, true)
 	if err != nil {
 		return nil, err
 	}
-	vr, err := c.ser.Spreadsheets.Values.Get(c.spreadsheetID, fmt.Sprintf("%s!A1:%s", sheetName, colMap[colNum])).Do()
+	vr, err := c.ser.Spreadsheets.Values.Get(c.spreadsheetID, fmt.Sprintf("%s!A1:%s", sheetName, LastColumnIndexToRangeChar(colNum))).Do()
 	if err != nil {
 		return nil, err
 	}
 	return vr.Values, nil
-}
-
-func (c *Client) Header(ctx context.Context, sheetName string) ([]interface{}, error) {
-	vr, err := c.ser.Spreadsheets.Values.Get(c.spreadsheetID, fmt.Sprintf("%s!A1:ZZ", sheetName)).Do()
-	if err != nil {
-		return nil, err
-	}
-	return vr.Values[0], nil
 }
 
 func (c *Client) CountColumns(ctx context.Context, sheetName string, headerExists bool) (int, error) {
