@@ -5,6 +5,7 @@
 - ServiceAccount作成
 - SpreadSheetの共有ユーザーとしてCloudRunのサービスアカウントを追加する
 – CloudRunへデプロイ(認証付き)
+- RequestするアカウントはCloudRunの起動元として権限を追加しておく
 - CloudRun認証用トークン取得
 - Request
 
@@ -21,6 +22,10 @@ SpreadSheetを共有する
 `make run-deploy`
 
 ※Makefileを編集し、サービス名他環境に合わせた値にすること
+
+### RequestするアカウントはCloudRunの起動元として権限を追加しておく
+
+そのまま
 
 ### CloudRun認証用トークン取得
 
