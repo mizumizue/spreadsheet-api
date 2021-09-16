@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestLastCol(t *testing.T) {
+func Test_LastColumnIndexToRangeChar(t *testing.T) {
 	type args struct {
 		colNum int
 	}
@@ -33,20 +33,6 @@ func TestLastCol(t *testing.T) {
 				colNum: 26,
 			},
 			want: "AA",
-		},
-		{
-			name: "",
-			args: args{
-				colNum: 51,
-			},
-			want: "AZ",
-		},
-		{
-			name: "",
-			args: args{
-				colNum: 52,
-			},
-			want: "AAA",
 		},
 	}
 	for _, tt := range tests {

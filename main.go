@@ -113,19 +113,14 @@ func LastColumnIndexToRangeChar(lastColumnIndex int) string {
 			am[i] = string(a)
 		}
 	}
-	alphaLen := len([]rune(alpha))
-	if lastColumnIndex < alphaLen {
+	if lastColumnIndex < 26 {
 		return am[lastColumnIndex]
-	} else {
-		n := lastColumnIndex / alphaLen
-		m := lastColumnIndex % alphaLen
-		res := ""
-		for i := 0; i < n; i++ {
-			res += am[0]
-		}
-		res += am[m]
-		return res
 	}
+	// TODO スプシのカラムに合わせた文字列に変換する
+	// 26 -> AA
+	// 27 -> AB
+	// ...
+	return ""
 }
 
 func jsonMap(header []interface{}, values [][]interface{}) []map[string]interface{} {
