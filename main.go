@@ -82,12 +82,12 @@ func LastColumnIndexToRangeChar(lastColumnIndex int) string {
 			am[i] = string(a)
 		}
 	}
-	lastAlphaNum := 26
-	if lastColumnIndex < lastAlphaNum {
+	alphaLen := len([]rune(alpha))
+	if lastColumnIndex < alphaLen {
 		return am[lastColumnIndex]
 	} else {
-		n := lastColumnIndex / lastAlphaNum
-		m := lastColumnIndex % lastAlphaNum
+		n := lastColumnIndex / alphaLen
+		m := lastColumnIndex % alphaLen
 		res := ""
 		for i := 0; i < n; i++ {
 			res += am[0]
