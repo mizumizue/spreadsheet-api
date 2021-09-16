@@ -16,11 +16,6 @@ import (
 	"google.golang.org/api/sheets/v4"
 )
 
-const (
-	SheetIdParam   = "sheetId"
-	SheetNameParam = "sheetName"
-)
-
 func main() {
 	http.HandleFunc("/api/resources", handler)
 	port := os.Getenv("PORT")
@@ -30,46 +25,82 @@ func main() {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
 }
 
+type Parameters struct {
+	sheetId   string
+	sheetName string
+}
+
+func NewParameter(query url.Values) (*Parameters, error) {
+	sheetId := query.Get("sheetId")
+	sheetName := query.Get("sheetName")
+	if sheetId == "" || sheetName == "" {
+		return nil, fmt.Errorf("sheetId and sheetName is required!!! ")
+	}
+	return &Parameters{
+		sheetId:   sheetId,
+		sheetName: sheetName,
+	}, nil
+}
+
+func response(w http.ResponseWriter, res []byte) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write(res)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func errorResponse(w http.ResponseWriter, statusCode int, err error) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(statusCode)
+	m, _ := json.Marshal(map[string]interface{}{
+		"error": err.Error(),
+	})
+	_, err = w.Write(m)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 func handler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	res, err := func(ctx context.Context, query url.Values) ([]byte, error) {
-		sheetId := query.Get(SheetIdParam)
-		sheetName := query.Get(SheetNameParam)
-		if sheetId == "" || sheetName == "" {
-			return nil, fmt.Errorf("sheetId and sheetName is required!!! ")
-		}
-
-		client, err := NewClient(ctx, sheetId, []string{"https://www.googleapis.com/auth/spreadsheets.readonly"}...)
-		if err != nil {
-			return nil, err
-		}
-
-		headers, err := client.Header(ctx, sheetName)
-		if err != nil {
-			return nil, err
-		}
-
-		values, err := client.AllRows(ctx, sheetName)
-		if err != nil {
-			return nil, err
-		}
-
-		mapped := jsonMap(headers, values)
-		jb, err := json.Marshal(mapped)
-		if err != nil {
-			return nil, err
-		}
-		return jb, nil
-	}(ctx, req.URL.Query())
+	params, err := NewParameter(req.URL.Query())
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		errorResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	w.Write(res)
+	res, err := func(ctx context.Context, params *Parameters) ([]byte, error) {
+		client, err := NewClient(ctx, params.sheetId, []string{"https://www.googleapis.com/auth/spreadsheets.readonly"}...)
+		if err != nil {
+			return nil, fmt.Errorf("spreadsheet client initialized failed... : %w", err)
+		}
+
+		headers, err := client.Header(ctx, params.sheetName)
+		if err != nil {
+			return nil, fmt.Errorf("data headers fetch failed... : %w", err)
+		}
+
+		values, err := client.AllRows(ctx, params.sheetName)
+		if err != nil {
+			return nil, fmt.Errorf("data fetch failed... : %w", err)
+		}
+
+		mapped := jsonMap(headers, values)
+		jb, err := json.Marshal(map[string]interface{}{
+			"data": mapped,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("data json marshal failed... : %w", err)
+		}
+		return jb, nil
+	}(ctx, params)
+	if err != nil {
+		errorResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	response(w, res)
 }
 
 var am map[int]string
